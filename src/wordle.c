@@ -1,21 +1,41 @@
+/**
+ * @file wordle.c
+ * @brief Implementation of Wordle game logic
+ * 
+ * Contains functions for dictionary loading, word validation,
+ * and feedback generation.
+ * 
+ * Course: ALGO3 - Algorithms & Data Structures in C
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-#include <time.h>
 #include "wordle.h"
 
+/**
+ * @brief Loads words from a dictionary file
+ * 
+ * Implementation uses two-pass approach:
+ * 1. First pass: Count valid words to allocate exact memory
+ * 2. Second pass: Read and store words
+ * 
+ * This approach minimizes memory fragmentation compared to
+ * dynamic resizing (realloc).
+ */
 char** load_words(const char* filename, int* count) {
     FILE* file = fopen(filename, "r");
     if (!file) {
         return NULL;
     }
 
-    // First pass: count words
+    /* First pass: count valid 5-letter words */
     int lines = 0;
     char buffer[100];
+    
     while (fgets(buffer, sizeof(buffer), file)) {
-        // Remove whitespace/newline
+        /* Remove newline characters */
         size_t len = strcspn(buffer, "\r\n");
         if (len == WORD_LENGTH) {
             lines++;
@@ -23,32 +43,36 @@ char** load_words(const char* filename, int* count) {
     }
 
     if (lines == 0) {
-        printf("Error: No valid words found in %s\n", filename);
         fclose(file);
         return NULL;
     }
 
-    // Allocate memory for pointers
+    /* Allocate array of pointers */
     char** words = (char**)malloc(lines * sizeof(char*));
     if (!words) {
-        printf("Error: Memory allocation failed\n");
         fclose(file);
         return NULL;
     }
 
-    // Second pass: read words
+    /* Second pass: read and store words */
     rewind(file);
     int i = 0;
+    
     while (fgets(buffer, sizeof(buffer), file) && i < lines) {
-        buffer[strcspn(buffer, "\r\n")] = 0; // trim newline
+        buffer[strcspn(buffer, "\r\n")] = '\0';  /* Trim newline */
         
         if (strlen(buffer) == WORD_LENGTH) {
-            // Normalize to uppercase
-            for(int j=0; j<WORD_LENGTH; j++) buffer[j] = toupper(buffer[j]);
+            /* Normalize to uppercase */
+            for (int j = 0; j < WORD_LENGTH; j++) {
+                buffer[j] = toupper(buffer[j]);
+            }
             
+            /* Allocate and copy word */
             words[i] = (char*)malloc((WORD_LENGTH + 1) * sizeof(char));
-            strcpy(words[i], buffer);
-            i++;
+            if (words[i]) {
+                strcpy(words[i], buffer);
+                i++;
+            }
         }
     }
 
@@ -57,14 +81,21 @@ char** load_words(const char* filename, int* count) {
     return words;
 }
 
+/**
+ * @brief Frees all memory allocated for the word list
+ */
 void free_word_list(char** word_list, int count) {
     if (!word_list) return;
+    
     for (int i = 0; i < count; i++) {
         free(word_list[i]);
     }
     free(word_list);
 }
 
+/**
+ * @brief Linear search to check if word exists in dictionary
+ */
 bool is_valid_word(const char* guess, char** word_list, int count) {
     for (int i = 0; i < count; i++) {
         if (strcmp(guess, word_list[i]) == 0) {
@@ -74,34 +105,46 @@ bool is_valid_word(const char* guess, char** word_list, int count) {
     return false;
 }
 
+/**
+ * @brief Generates Wordle-style feedback for a guess
+ * 
+ * Algorithm:
+ * 1. Initialize all positions as 'X' (absent)
+ * 2. Pass 1: Mark exact matches as 'G' and mark them as used
+ * 3. Pass 2: For non-matched letters, check if they appear
+ *    elsewhere in the target (mark as 'Y')
+ * 
+ * The two-pass approach correctly handles duplicate letters.
+ */
 void get_feedback(const char* target, const char* guess, char* result) {
-    // Make a copy of target to mark matched letters so we don't count them twice for yellow
+    /* Create working copy of target to track used letters */
     char temp_target[WORD_LENGTH + 1];
     strcpy(temp_target, target);
     
-    // Initialize result with 'X'
+    /* Initialize all positions as absent */
     for (int i = 0; i < WORD_LENGTH; i++) {
         result[i] = RESULT_ABSENT;
     }
     result[WORD_LENGTH] = '\0';
 
-    // Pass 1: Check for exact matches (Green)
+    /* Pass 1: Find exact matches (Green) */
     for (int i = 0; i < WORD_LENGTH; i++) {
         if (guess[i] == temp_target[i]) {
             result[i] = RESULT_CORRECT;
-            temp_target[i] = '#'; // Mark as used
+            temp_target[i] = '#';  /* Mark as used */
         }
     }
 
-    // Pass 2: Check for presence in wrong spot (Yellow)
+    /* Pass 2: Find present but misplaced letters (Yellow) */
     for (int i = 0; i < WORD_LENGTH; i++) {
-        if (result[i] == RESULT_CORRECT) continue; // Skip already matched
+        if (result[i] == RESULT_CORRECT) {
+            continue;  /* Skip already matched positions */
+        }
 
         for (int j = 0; j < WORD_LENGTH; j++) {
-            // If we find the letter elsewhere and it hasn't been used up
             if (guess[i] == temp_target[j]) {
                 result[i] = RESULT_PRESENT;
-                temp_target[j] = '#'; // Mark as used
+                temp_target[j] = '#';  /* Mark as used */
                 break;
             }
         }

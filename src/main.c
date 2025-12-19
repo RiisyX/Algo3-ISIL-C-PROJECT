@@ -1,3 +1,14 @@
+/**
+ * @file main.c
+ * @brief Main entry point for the Wordle Game and Solver
+ * 
+ * This file contains the main game loop that supports two modes:
+ * 1. Human player mode: User guesses the word manually
+ * 2. Solver mode: Automated AI solves the puzzle
+ * 
+ * Course: ALGO3 - Algorithms & Data Structures in C
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,13 +17,21 @@
 #include "wordle.h"
 #include "solver.h"
 
-// ANSI Color Codes for terminal output
+/* ANSI Color Codes for colored terminal output */
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 #define ANSI_COLOR_YELLOW  "\x1b[33m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
+/**
+ * @brief Prints the guess with colored feedback
+ * 
+ * Green = correct position, Yellow = wrong position, White = not in word
+ * 
+ * @param guess The guessed word
+ * @param result The feedback string (G/Y/X)
+ */
 void print_result_colored(const char* guess, const char* result) {
-    printf("Attempt: ");
+    printf("Result:  ");
     for (int i = 0; i < WORD_LENGTH; i++) {
         if (result[i] == RESULT_CORRECT) {
             printf(ANSI_COLOR_GREEN "%c" ANSI_COLOR_RESET, guess[i]);
@@ -22,115 +41,154 @@ void print_result_colored(const char* guess, const char* result) {
             printf("%c", guess[i]);
         }
     }
-    printf("  (Feedback: %s)\n", result);
+    printf("  [%s]\n", result);
 }
 
+/**
+ * @brief Main function - Entry point of the program
+ * 
+ * Usage:
+ *   ./wordle         - Play the game as a human
+ *   ./wordle solver  - Watch the AI solve the puzzle
+ */
 int main(int argc, char* argv[]) {
+    /* Seed random number generator */
     srand((unsigned int)time(NULL));
 
-    // Load dictionary
+    /* Load dictionary from file */
+    printf("====================================\n");
+    printf("   WORDLE - ALGO3 Project\n");
+    printf("====================================\n\n");
     printf("Loading dictionary...\n");
+    
     int word_count = 0;
-    char** words = load_words("wordle-solver/words.txt", &word_count);
-    // Try fallback path if running from src or parent
-    if (!words) words = load_words("../words.txt", &word_count);
-    if (!words) words = load_words("words.txt", &word_count);
-
+    char** words = load_words("words.txt", &word_count);
+    
     if (!words) {
-        printf("Failed to load dictionary. Ensure 'words.txt' exists.\n");
+        printf("ERROR: Failed to load dictionary.\n");
+        printf("Ensure 'words.txt' exists in the current directory.\n");
+        system("pause");
         return 1;
     }
-    printf("Loaded %d words.\n", word_count);
+    printf("Loaded %d words.\n\n", word_count);
 
-    // Determine mode
-    bool params_solver = false;
+    /* Determine game mode from command line arguments */
+    int solver_mode = 0;
     if (argc > 1 && strcmp(argv[1], "solver") == 0) {
-        params_solver = true;
+        solver_mode = 1;
     }
 
-    // Pick target
+    /* Select target word randomly */
     int target_idx = rand() % word_count;
-    char* target = words[target_idx]; 
-    // DEBUG: printf("Target is: %s\n", target); 
+    char* target = words[target_idx];
 
-    // Initialize solver if needed
+    /* Initialize solver if in solver mode */
     SolverState* solver = NULL;
-    if (params_solver) {
+    if (solver_mode) {
         solver = init_solver(words, word_count);
         if (!solver) {
-            printf("Failed to init solver.\n");
+            printf("ERROR: Failed to initialize solver.\n");
             free_word_list(words, word_count);
+            system("pause");
             return 1;
         }
-        printf("\n--- AUTOMATED SOLVER MODE ---\n");
+        printf("=== AUTOMATED SOLVER MODE ===\n");
+        printf("Watch the AI solve the puzzle!\n\n");
     } else {
-        printf("\n--- WORDLE GAME ---\nTry to guess the 5-letter word in 6 tries.\n");
+        printf("=== HUMAN PLAYER MODE ===\n");
+        printf("Guess the 5-letter word in %d tries.\n\n", MAX_ATTEMPTS);
     }
 
-    // Game loop
+    /* Main game loop */
     char guess[100];
     char result[WORD_LENGTH + 1];
-    bool won = false;
+    int won = 0;
 
     for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        printf("\nTry %d/%d: ", attempt, MAX_ATTEMPTS);
+        printf("Attempt %d/%d: ", attempt, MAX_ATTEMPTS);
         
-        if (params_solver) {
+        if (solver_mode) {
+            /* Solver picks the best guess */
             char* best = get_best_guess(solver);
             if (!best) {
-                printf("Solver cannot find more words!\n");
+                printf("Solver error: No candidates remaining!\n");
                 break;
             }
             strcpy(guess, best);
-            printf("%s (Solver chose)\n", guess);
+            printf("%s\n", guess);
         } else {
-            if (scanf("%99s", guess) != 1) break;
-            // Convert to uppercase
-            for(int i=0; guess[i]; i++) guess[i] = toupper(guess[i]);
+            /* Human enters guess */
+            if (scanf("%99s", guess) != 1) {
+                printf("Input error.\n");
+                break;
+            }
+            /* Convert to uppercase for consistency */
+            for (int i = 0; guess[i]; i++) {
+                guess[i] = toupper(guess[i]);
+            }
         }
 
+        /* Validate guess length */
         if (strlen(guess) != WORD_LENGTH) {
-            printf("Invalid length. Must be 5 letters.\n");
-            attempt--;
+            printf("Invalid: Must be exactly %d letters.\n\n", WORD_LENGTH);
+            attempt--;  /* Don't count invalid attempts */
             continue;
         }
 
+        /* Validate guess is in dictionary */
         if (!is_valid_word(guess, words, word_count)) {
-            printf("Not in word list.\n");
+            printf("Invalid: Word not in dictionary.\n\n");
             attempt--;
             continue;
         }
 
+        /* Generate and display feedback */
         get_feedback(target, guess, result);
         print_result_colored(guess, result);
 
-        if (params_solver) {
+        /* Update solver's candidate list */
+        if (solver_mode) {
             filter_candidates(solver, guess, result);
         }
 
-        // Check win
-        bool all_green = true;
-        for (int i=0; i<WORD_LENGTH; i++) {
-            if (result[i] != RESULT_CORRECT) all_green = false;
+        /* Check for win condition */
+        int all_correct = 1;
+        for (int i = 0; i < WORD_LENGTH; i++) {
+            if (result[i] != RESULT_CORRECT) {
+                all_correct = 0;
+                break;
+            }
         }
 
-        if (all_green) {
-            printf("\nWINNER! The word was %s\n", target);
-            if (params_solver) printf("Solver cracked it in %d tries.\n", attempt);
-            fflush(stdout);
-            won = true;
+        if (all_correct) {
+            printf("\n====================================\n");
+            printf("  CONGRATULATIONS! YOU WON!\n");
+            printf("  The word was: %s\n", target);
+            if (solver_mode) {
+                printf("  Solved in %d attempt(s).\n", attempt);
+            }
+            printf("====================================\n");
+            won = 1;
             break;
         }
+        printf("\n");
     }
 
+    /* Display loss message if not won */
     if (!won) {
-        printf("\nGAME OVER. The word was %s\n", target);
+        printf("\n====================================\n");
+        printf("  GAME OVER\n");
+        printf("  The word was: %s\n", target);
+        printf("====================================\n");
     }
 
-    // Cleanup
-    if (solver) free_solver(solver);
+    /* Free allocated memory */
+    if (solver) {
+        free_solver(solver);
+    }
     free_word_list(words, word_count);
 
+    /* Pause before exit (Windows) */
     printf("\n");
     system("pause");
 
