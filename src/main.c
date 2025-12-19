@@ -67,7 +67,8 @@ int main(int argc, char* argv[]) {
     if (!words) {
         printf("ERROR: Failed to load dictionary.\n");
         printf("Ensure 'words.txt' exists in the current directory.\n");
-        system("pause");
+        printf("Press Enter to exit...\n");
+        getchar();
         return 1;
     }
     printf("Loaded %d words.\n\n", word_count);
@@ -89,7 +90,8 @@ int main(int argc, char* argv[]) {
         if (!solver) {
             printf("ERROR: Failed to initialize solver.\n");
             free_word_list(words, word_count);
-            system("pause");
+            printf("Press Enter to exit...\n");
+            getchar();
             return 1;
         }
         printf("=== AUTOMATED SOLVER MODE ===\n");
@@ -188,9 +190,8 @@ int main(int argc, char* argv[]) {
     }
     free_word_list(words, word_count);
 
-    /* Pause before exit (Windows) */
-    printf("\n");
-    system("pause");
+    printf("Press Enter to exit...\n");
+    getchar();
 
     return 0;
 }

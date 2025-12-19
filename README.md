@@ -1,164 +1,100 @@
-# Wordle Game & Automated Solver
+# Wordle Game and Solver
 
-A command-line implementation of the popular Wordle word-guessing game with an integrated automated solver.
+## Description
 
-## Course Information
+This project is a command-line implementation of the Wordle game written in C. It includes two modes: a human player mode where you try to guess the word yourself, and a solver mode where the program finds the word automatically.
 
-**Course:** ALGO3 – Algorithms & Data Structures in C  
-**Project:** Wordle Game + Automated Solver  
-**Language:** C (Standard C99)
+This was developed as part of the ALGO3 course (Algorithms and Data Structures in C).
 
----
+## Features
+
+- Play Wordle in the terminal
+- Dictionary of valid 5-letter words
+- Color-coded feedback (Green, Yellow, Gray)
+- Automated solver using letter frequency analysis
+- Clean separation between game logic and solver logic
 
 ## Project Structure
 
 ```
 wordle-solver/
 ├── src/
-│   ├── main.c          # Main program entry point
-│   ├── wordle.c        # Game logic implementation
-│   ├── wordle.h        # Game logic header
-│   ├── solver.c        # Solver algorithm implementation
-│   └── solver.h        # Solver algorithm header
-├── words.txt           # Dictionary of valid 5-letter words
-├── README.md           # This file
-├── report.md           # Technical report
-├── screenshots/        # Screenshots of gameplay
-└── .gitignore          # Git ignore rules
+│   ├── main.c        # Main program
+│   ├── wordle.c      # Game logic
+│   ├── wordle.h      # Game header
+│   ├── solver.c      # Solver algorithm
+│   └── solver.h      # Solver header
+├── words.txt         # Word dictionary
+├── README.md
+├── report.md         # Technical report (Markdown)
+├── Project_Algo3.pdf # Project report (PDF)
+└── screenshots/
 ```
-
----
 
 ## Compilation
 
-Compile the project using GCC:
+To compile the project, run:
 
-```bash
+```
 gcc src/*.c -o wordle
 ```
 
----
+## How to Run
 
-## Usage
+### Human Mode
 
-### Human Player Mode
+Play the game yourself:
 
-Play the game yourself by guessing the secret 5-letter word:
-
-```bash
+```
 ./wordle
 ```
 
-### Automated Solver Mode
-
-Watch the AI solve the puzzle automatically:
-
-```bash
-./wordle solver
-```
-
----
-
-## Game Rules
-
-1. The game selects a random 5-letter word from the dictionary
-2. You have **6 attempts** to guess the word
-3. After each guess, you receive feedback:
-   - **G (Green):** Correct letter in correct position
-   - **Y (Yellow):** Correct letter in wrong position
-   - **X (Gray):** Letter not in the word
-4. Win by guessing the word within 6 attempts
-
----
-
-## Example Output
-
-### Human Player Mode
-
-```
-====================================
-   WORDLE - ALGO3 Project
-====================================
-
-Loading dictionary...
-Loaded 45 words.
-
-=== HUMAN PLAYER MODE ===
-Guess the 5-letter word in 6 tries.
-
-Attempt 1/6: CRANE
-Result:  CRANE  [XXYXX]
-
-Attempt 2/6: PLANT
-Result:  PLANT  [GGGGG]
-
-====================================
-  CONGRATULATIONS! YOU WON!
-  The word was: PLANT
-====================================
-```
+You will be asked to guess a 5-letter word. You have 6 attempts.
 
 ### Solver Mode
 
+Let the program solve the puzzle:
+
 ```
-====================================
-   WORDLE - ALGO3 Project
-====================================
-
-Loading dictionary...
-Loaded 45 words.
-
-=== AUTOMATED SOLVER MODE ===
-Watch the AI solve the puzzle!
-
-Attempt 1/6: CRANE
-Result:  CRANE  [XXYXX]
-         [12 candidates remaining]
-
-Attempt 2/6: PLANT
-Result:  PLANT  [GGGGG]
-         [1 candidates remaining]
-
-====================================
-  CONGRATULATIONS! YOU WON!
-  The word was: PLANT
-  Solved in 2 attempt(s).
-====================================
+./wordle solver
 ```
 
----
+The solver will automatically pick words and show how it narrows down the candidates.
+
+## Game Rules
+
+1. A random 5-letter word is selected from the dictionary
+2. You have 6 tries to guess it
+3. After each guess, you get feedback:
+   - G (Green) = correct letter in correct position
+   - Y (Yellow) = correct letter but wrong position
+   - X (Gray) = letter not in the word
+4. You win if you guess the word within 6 attempts
 
 ## Solver Strategy
 
-The automated solver uses a **Greedy Letter-Frequency Heuristic**:
+The solver works by eliminating impossible words after each guess.
 
-1. **Initialization:** All dictionary words start as candidates
-2. **Filtering:** After each guess, eliminate words inconsistent with feedback
-3. **Guess Selection:** Choose the word that maximizes letter coverage:
-   - Count frequency of each letter across remaining candidates
-   - Score each word by sum of its unique letter frequencies
-   - Select the highest-scoring word
+1. It starts with all words as possible candidates
+2. After each guess, it removes words that don't match the feedback
+3. To pick the next guess, it scores words based on letter frequency
+4. Words with common letters get higher scores
+5. It picks the word with the highest score
 
-This strategy efficiently narrows down candidates by prioritizing commonly-occurring letters.
-
----
-
-## Data Structures
-
-| Structure             | Purpose                            | Complexity |
-| --------------------- | ---------------------------------- | ---------- |
-| `char** words`        | Dynamic array of word strings      | O(n) space |
-| `bool* possible_mask` | Candidate tracking without copying | O(n) space |
-| `SolverState`         | Encapsulates solver knowledge      | O(1) space |
-
----
+This approach usually solves the puzzle in 3-4 attempts.
 
 ## Screenshots
 
-_Screenshots of gameplay will be added here_
+### Solver Mode (Win)
 
----
+![Solver winning the game](screenshots/Win%20screen%20+%20Solver.png)
+
+### Human Mode (Game Over)
+
+![Game over screen](screenshots/fail%20Screen.png)
 
 ## Author
 
-ALGO3 Project Submission
+Rezki Mohamed Riad  
+ISIL C Group 1  
+242431624912
